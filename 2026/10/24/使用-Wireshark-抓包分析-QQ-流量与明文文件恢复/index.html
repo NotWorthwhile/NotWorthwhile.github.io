@@ -1,0 +1,254 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="dark"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>使用 Wireshark 抓包分析 QQ 流量与明文文件恢复 | 泥懂布的小站</title><meta name="author" content="泥懂布"><meta name="copyright" content="泥懂布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#0d0d0d"><meta name="description" content="一、 实验背景在网络安全与网络协议分析的学习中，Wireshark 是必备的底层流量分析工具。本次实验旨在通过捕获日常使用的 QQ 客户端流量，探究即时通讯软件在底层的传输协议（UDP&#x2F;TCP）、数据加密状态（明文&#x2F;密文），并掌握利用十六进制文件头特征码提取和恢复明文传输文件的高级技巧。 二、实验环境抓包分析：Wireshark 辅助工具：HxD 十六进制编辑器 测试设备：物理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 Wireshark 抓包分析 QQ 流量与明文文件恢复">
+<meta property="og:url" content="http://example.com/2026/10/24/%E4%BD%BF%E7%94%A8-Wireshark-%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90-QQ-%E6%B5%81%E9%87%8F%E4%B8%8E%E6%98%8E%E6%96%87%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D/index.html">
+<meta property="og:site_name" content="泥懂布的小站">
+<meta property="og:description" content="一、 实验背景在网络安全与网络协议分析的学习中，Wireshark 是必备的底层流量分析工具。本次实验旨在通过捕获日常使用的 QQ 客户端流量，探究即时通讯软件在底层的传输协议（UDP&#x2F;TCP）、数据加密状态（明文&#x2F;密文），并掌握利用十六进制文件头特征码提取和恢复明文传输文件的高级技巧。 二、实验环境抓包分析：Wireshark 辅助工具：HxD 十六进制编辑器 测试设备：物理">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/avatar.jpg">
+<meta property="article:published_time" content="2026-10-24T03:28:07.000Z">
+<meta property="article:modified_time" content="2026-10-24T03:38:57.336Z">
+<meta property="article:author" content="泥懂布">
+<meta property="article:tag" content="流量分析，网络渗透测试">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/avatar.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "使用 Wireshark 抓包分析 QQ 流量与明文文件恢复",
+  "url": "http://example.com/2026/10/24/%E4%BD%BF%E7%94%A8-Wireshark-%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90-QQ-%E6%B5%81%E9%87%8F%E4%B8%8E%E6%98%8E%E6%96%87%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D/",
+  "image": "http://example.com/img/avatar.jpg",
+  "datePublished": "2026-10-24T03:28:07.000Z",
+  "dateModified": "2026-10-24T03:38:57.336Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "泥懂布",
+      "url": "http://example.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2026/10/24/%E4%BD%BF%E7%94%A8-Wireshark-%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90-QQ-%E6%B5%81%E9%87%8F%E4%B8%8E%E6%98%8E%E6%96%87%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '使用 Wireshark 抓包分析 QQ 流量与明文文件恢复',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">2</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/top.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">泥懂布的小站</span></a><a class="nav-page-title" href="/"><span class="site-name">使用 Wireshark 抓包分析 QQ 流量与明文文件恢复</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">使用 Wireshark 抓包分析 QQ 流量与明文文件恢复</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-10-24T03:28:07.000Z" title="发表于 2026-10-24 11:28:07">2026-10-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-10-24T03:38:57.336Z" title="更新于 2026-10-24 11:38:57">2026-10-24</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h3 id="一、-实验背景"><a href="#一、-实验背景" class="headerlink" title="一、 实验背景"></a>一、 实验背景</h3><p>在网络安全与网络协议分析的学习中，Wireshark 是必备的底层流量分析工具。本次实验旨在通过捕获日常使用的 QQ 客户端流量，探究即时通讯软件在底层的传输协议（UDP&#x2F;TCP）、数据加密状态（明文&#x2F;密文），并掌握利用十六进制文件头特征码提取和恢复明文传输文件的高级技巧。</p>
+<h3 id="二、实验环境"><a href="#二、实验环境" class="headerlink" title="二、实验环境"></a>二、实验环境</h3><p>抓包分析：Wireshark</p>
+<p>辅助工具：HxD 十六进制编辑器</p>
+<p>测试设备：物理机与手机，处于同一局域网下</p>
+<h3 id="三、实验步骤与问题分析"><a href="#三、实验步骤与问题分析" class="headerlink" title="三、实验步骤与问题分析"></a>三、实验步骤与问题分析</h3><p>第一步：流量捕获与初步过滤<br>在物理机上以管理员身份运行 Wireshark，选择当前连接局域网的网卡（如 WLAN）开始抓包。</p>
+<p>在手机 QQ 上向“我的电脑”发送一张图片或表情包以制造流量。</p>
+<p>抓包结束后，在 Wireshark 的“应用显示过滤器”中输入 ip.addr &#x3D;&#x3D; [手机IP]，精准过滤出手机与服务器之间的通信数据包。</p>
+<img width="1851" height="1336" alt="Image" src="https://github.com/user-attachments/assets/554987d7-57c4-465c-8c76-7138db9e72ad" />
+图注：过滤并定位到目标流量
+
+<p>第二步：协议与加密状态分析</p>
+<ol>
+<li><p>UDP or TCP？<br>答：TCP。<br>从过滤后的列表中可以看到，该次图片拉取行为使用的是 TCP 协议。通过图中的三次握手（SYN, SYN-ACK, ACK）以及后续的持续数据传输，证明了该请求建立在可靠的面向连接的 TCP 协议之上。</p>
+</li>
+<li><p>加密 or 明文？<br>答：明文。<br>在 Protocol 列中清晰显示了 HTTP 协议。由于 HTTP 协议本身不包含加密机制，因此数据是明文传输的。我们甚至可以直接在 Info 列中看到完整的 URL 路径（&#x2F;qqline&#x2F;…），且在响应头中能直接看到 Server: QQ&#x2F;1.0.0 (Tencent) 的标识。</p>
+</li>
+</ol>
+<img width="1153" height="1386" alt="Image" src="https://github.com/user-attachments/assets/0aa13cd6-4826-4437-9eb0-708cf3786b4b" />
+图注：追踪 HTTP 流，可直接读取请求与响应头信息
+
+<p>第三步：恢复明文传输的文件<br>既然确认了是 HTTP 明文传输，接下来就需要把响应体中的图片数据提取出来。</p>
+<ol>
+<li>定位文件特征码<br>不同类型的文件有不同的十六进制头部特征。例如：</li>
+</ol>
+<p>JPG&#x2F;JPEG：头部 FF D8，尾部 FF D9</p>
+<p>PNG：头部 89 50 4E 47</p>
+<p>ZIP：头部 50 4B 03 04</p>
+<p>在 Wireshark 的追踪流窗口中，将显示格式切换为“原始数据”，并在数据流中可以明显看到 Exif 和 JFIF 字样，这表明这是一张 JPG 图片。将其“另存为” recovered_qq.jpg。</p>
+<ol start="2">
+<li>发现问题：无法打开的文件<br>双击打开导出的图片，发现系统提示“似乎不支持此文件格式”。<br>原因：Wireshark 导出的原始数据包含了整个 HTTP 通信过程（请求头和响应头）。Windows 图片查看器无法识别文件开头的 HTTP 协议头，因此报错。</li>
+</ol>
+<img width="1859" height="1075" alt="Image" src="https://github.com/user-attachments/assets/e1e170e8-e7c6-4280-b7f0-38a3b7caac9b" />
+图注：包含协议头的图片无法正常解析
+
+<ol start="3">
+<li>使用 HxD 修复文件</li>
+</ol>
+<p>使用 HxD 十六进制编辑器打开 recovered_qq.jpg。</p>
+<p>发现文件开头为 47 45 54…（对应 ASCII 码的 GET…）。</p>
+<p>使用快捷键 Ctrl + F 搜索十六进制值 FFD8（注意不要加空格），成功定位到 JPG 图片的真实起点。</p>
+<p>选中从文件最开头到 FF D8 之前的所有冗余数据，按 Delete 键删除。</p>
+<p>另存为新文件 fixed_qq.jpg。</p>
+<img width="1086" height="1397" alt="Image" src="https://github.com/user-attachments/assets/a3ad6cff-bc5c-41b3-9f22-26fb0b28e591" />
+图注：HxD 中查看未处理的原始数据
+
+<img width="957" height="913" alt="Image" src="https://github.com/user-attachments/assets/2185bf8b-fc4f-49e2-a1b0-1eb792d40ace" />
+图注：手动切除 HTTP 协议头，保留纯 JPG 数据
+
+<h3 id="四、实验成果"><a href="#四、实验成果" class="headerlink" title="四、实验成果"></a>四、实验成果</h3><p>再次双击打开 fixed_qq.jpg，图片成功恢复显示！</p>
+<img width="1650" height="1048" alt="Image" src="https://github.com/user-attachments/assets/6923ba8c-8766-4797-bfdf-f19c504863a8" />
+图注：通过提取特征码成功还原的图片</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://example.com">泥懂布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://example.com/2026/10/24/%E4%BD%BF%E7%94%A8-Wireshark-%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90-QQ-%E6%B5%81%E9%87%8F%E4%B8%8E%E6%98%8E%E6%96%87%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D/">http://example.com/2026/10/24/%E4%BD%BF%E7%94%A8-Wireshark-%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90-QQ-%E6%B5%81%E9%87%8F%E4%B8%8E%E6%98%8E%E6%96%87%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://example.com" target="_blank">泥懂布的小站</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B5%81%E9%87%8F%E5%88%86%E6%9E%90%EF%BC%8C%E7%BD%91%E7%BB%9C%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">流量分析，网络渗透测试</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/10/24/%E5%AF%B9%E7%AD%89%E4%BF%9D2-0%E7%9A%84%E7%90%86%E8%A7%A3/" title="对等保2.0的理解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">对等保2.0的理解</div></div><div class="info-2"><div class="info-item-1">一、等保2.0是什么等保全称网络安全等级保护，是我国网络安全的统一国家标准。 如果通俗理解：它就是所有网站、系统、APP的“安全最低标准”，规定了一个系统应该做到多安全、该有哪些防护、该怎么管理。2.0是2019年更新的最新版本，替代了老旧的1.0标准，是目前企业、学校、政府统一执行的规范。 二、等保2.0最大的特点：覆盖范围变全了以前等保1.0只管普通电脑、服务器、网站。等保2.0扩大范围，把现在所有主流技术全部纳入监管，包括：  云计算 大数据平台 手机应用 物联网设备 工业控制系统  也就是说，只要是网络信息系统，基本都要遵守等保2.0规则，覆盖更加全面、贴合当下互联网环境。 三、五级分级制度：根据重要性区别防护等保把所有系统分为五个等级，等级越高、越重要、防护越严格： 1. 一级：普通小系统，自己维护即可，不用备案2. 二级：一般业务系统（校园小系统、小企业系统），需要备案，两年测评一次3. 三级：最重要、最常见（官网、教务系统、企业业务系统），每年必须测评4. 四级、五级：国家核心涉密系统，普通企业和学校几乎接触不到 核心思想就是：风险越高，防护越严，不搞一刀切。 四、...</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">泥懂布</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">2</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E3%80%81-%E5%AE%9E%E9%AA%8C%E8%83%8C%E6%99%AF"><span class="toc-text">一、 实验背景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%AE%9E%E9%AA%8C%E7%8E%AF%E5%A2%83"><span class="toc-text">二、实验环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%AE%9E%E9%AA%8C%E6%AD%A5%E9%AA%A4%E4%B8%8E%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="toc-text">三、实验步骤与问题分析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%AE%9E%E9%AA%8C%E6%88%90%E6%9E%9C"><span class="toc-text">四、实验成果</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/24/%E4%BD%BF%E7%94%A8-Wireshark-%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90-QQ-%E6%B5%81%E9%87%8F%E4%B8%8E%E6%98%8E%E6%96%87%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D/" title="使用 Wireshark 抓包分析 QQ 流量与明文文件恢复">使用 Wireshark 抓包分析 QQ 流量与明文文件恢复</a><time datetime="2026-10-24T03:28:07.000Z" title="发表于 2026-10-24 11:28:07">2026-10-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/24/%E5%AF%B9%E7%AD%89%E4%BF%9D2-0%E7%9A%84%E7%90%86%E8%A7%A3/" title="对等保2.0的理解">对等保2.0的理解</a><time datetime="2026-10-24T03:27:51.000Z" title="发表于 2026-10-24 11:27:51">2026-10-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/24/hello-world/" title="Hello World">Hello World</a><time datetime="2026-10-24T02:38:31.259Z" title="发表于 2026-10-24 10:38:31">2026-10-24</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 泥懂布</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
