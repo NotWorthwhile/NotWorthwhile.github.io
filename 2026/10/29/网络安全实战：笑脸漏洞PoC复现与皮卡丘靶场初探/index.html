@@ -1,0 +1,254 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="dark"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探 | 泥懂布的小站</title><meta name="author" content="泥懂布"><meta name="copyright" content="泥懂布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#0d0d0d"><meta name="description" content="一、 实验背景与目标本次实验旨在通过实际编写 PoC（概念验证）和搭建本地靶场，深入理解常见的网络安全漏洞。具体任务包括： 编写 Python PoC 检测并利用 vsftpd 2.3.4 笑脸漏洞。 使用 Docker 搭建皮卡丘（Pikachu） Web 漏洞练习靶场。 个人尝试通关靶场关卡（以 SQL 注入为例）。 深入源码分析漏洞成因，并给出修复方案。 二、笑脸漏洞（vsftpd 2.3.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探">
+<meta property="og:url" content="http://example.com/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AC%91%E8%84%B8%E6%BC%8F%E6%B4%9EPoC%E5%A4%8D%E7%8E%B0%E4%B8%8E%E7%9A%AE%E5%8D%A1%E4%B8%98%E9%9D%B6%E5%9C%BA%E5%88%9D%E6%8E%A2/index.html">
+<meta property="og:site_name" content="泥懂布的小站">
+<meta property="og:description" content="一、 实验背景与目标本次实验旨在通过实际编写 PoC（概念验证）和搭建本地靶场，深入理解常见的网络安全漏洞。具体任务包括： 编写 Python PoC 检测并利用 vsftpd 2.3.4 笑脸漏洞。 使用 Docker 搭建皮卡丘（Pikachu） Web 漏洞练习靶场。 个人尝试通关靶场关卡（以 SQL 注入为例）。 深入源码分析漏洞成因，并给出修复方案。 二、笑脸漏洞（vsftpd 2.3.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/avatar.jpg">
+<meta property="article:published_time" content="2026-10-29T10:46:56.000Z">
+<meta property="article:modified_time" content="2026-10-29T10:48:24.960Z">
+<meta property="article:author" content="泥懂布">
+<meta property="article:tag" content="笑脸漏洞，皮卡丘靶场，网络安全">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/avatar.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探",
+  "url": "http://example.com/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AC%91%E8%84%B8%E6%BC%8F%E6%B4%9EPoC%E5%A4%8D%E7%8E%B0%E4%B8%8E%E7%9A%AE%E5%8D%A1%E4%B8%98%E9%9D%B6%E5%9C%BA%E5%88%9D%E6%8E%A2/",
+  "image": "http://example.com/img/avatar.jpg",
+  "datePublished": "2026-10-29T10:46:56.000Z",
+  "dateModified": "2026-10-29T10:48:24.960Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "泥懂布",
+      "url": "http://example.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AC%91%E8%84%B8%E6%BC%8F%E6%B4%9EPoC%E5%A4%8D%E7%8E%B0%E4%B8%8E%E7%9A%AE%E5%8D%A1%E4%B8%98%E9%9D%B6%E5%9C%BA%E5%88%9D%E6%8E%A2/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css"><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">6</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/top.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">泥懂布的小站</span></a><a class="nav-page-title" href="/"><span class="site-name">网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-10-29T10:46:56.000Z" title="发表于 2026-10-29 18:46:56">2026-10-29</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-10-29T10:48:24.960Z" title="更新于 2026-10-29 18:48:24">2026-10-29</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>一、 实验背景与目标<br>本次实验旨在通过实际编写 PoC（概念验证）和搭建本地靶场，深入理解常见的网络安全漏洞。具体任务包括：</p>
+<p>编写 Python PoC 检测并利用 vsftpd 2.3.4 笑脸漏洞。</p>
+<p>使用 Docker 搭建皮卡丘（Pikachu） Web 漏洞练习靶场。</p>
+<p>个人尝试通关靶场关卡（以 SQL 注入为例）。</p>
+<p>深入源码分析漏洞成因，并给出修复方案。</p>
+<p>二、笑脸漏洞（vsftpd 2.3.4）PoC 编写与利用</p>
+<ol>
+<li><p>漏洞原理<br>vsftpd 2.3.4 版本源码中被恶意植入了后门。当用户尝试登录时，如果用户名包含笑脸符号 :)，服务器会在后台执行恶意代码，悄悄在 6200 端口 开启一个拥有 root 权限的 Shell。攻击者无需密码即可直接控制服务器。</p>
+</li>
+<li><p>PoC 脚本编写<br>在 Kali Linux 环境下，我使用 Python 的 socket 模块编写了轻量级检测脚本。核心逻辑是向 21 端口发送包含 USER user:) 和 PASS pass 的指令触发后门，随后检测 6200 端口是否被激活。</p>
+</li>
+<li><p>漏洞利用实战<br>为了避免自动化脚本因时序问题失败，我采用了手动触发的方式。</p>
+</li>
+</ol>
+<p>使用 nc 192.168.19.129 21 连接 FTP 服务。</p>
+<p>手动输入用户名 USER user:) 和密码 PASS pass 触发后门。</p>
+<p>断开连接后，立刻使用 nc 192.168.19.129 6200 连接后门端口。</p>
+<p>执行 whoami 命令，成功返回 root，证明已获取靶机最高权限。</p>
+<img width="1258" height="433" alt="Image" src="https://github.com/user-attachments/assets/1d48257b-c13a-4a91-a5e8-efb67450e3fd" />
+图注：成功触发后门并获取 Root 权限
+
+<p>三、皮卡丘靶场搭建与初始化<br>皮卡丘（Pikachu）是一个专为 Web 安全初学者设计的中文漏洞练习平台。我选择在 Kali 中使用 Docker 进行快速部署。</p>
+<p>部署命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bash</span><br><span class="line">sudo docker pull area39/pikachu</span><br><span class="line">sudo docker run -itd -p 8080:80 --name=pikachu area39/pikachu</span><br></pre></td></tr></table></figure>
+<p>随后在浏览器访问 <a href="http://127.0.0.1:8080，点击“安装/初始化”完成数据库配置。">http://127.0.0.1:8080，点击“安装/初始化”完成数据库配置。</a></p>
+<img width="1280" height="883" alt="Image" src="https://github.com/user-attachments/assets/23592cbf-b2e8-47f6-b724-76c1c569dd88" />
+图注：皮卡丘靶场部署成功并完成初始化
+
+<p>四、个人通关尝试：数字型 SQL 注入 (POST)</p>
+<ol>
+<li>攻击过程<br>进入 SQL-Inject -&gt; 数字型注入(POST) 关卡。由于前端限制了下拉框的选择，无法直接输入恶意代码。<br>我使用浏览器的开发者工具（F12）的 Console 面板，通过执行 JavaScript 代码篡改前端页面，动态添加了一个值为 1 OR 1&#x3D;1 的选项。</li>
+</ol>
+<img width="1844" height="1262" alt="Image" src="https://github.com/user-attachments/assets/6b83801b-12e3-4edc-9f75-1f97718c336d" />
+图注：通过前端控制台修改下拉框参数
+
+<p>选择该恶意选项并点击查询后，后端未做任何过滤直接将参数拼接进 SQL 语句，导致查询条件恒成立。页面瞬间回显了数据库中所有用户的账号和邮箱信息。</p>
+<img width="1280" height="829" alt="Image" src="https://github.com/user-attachments/assets/bc0d6cbd-eaf3-422a-9b01-d863777f2978" />
+图注：SQL 注入成功，回显全表数据
+
+<p>五、高阶要求：源码分析与修复<br>结合上述 SQL 注入的过程，对该漏洞的成因进行深度分析并给出修复建议：</p>
+<ol>
+<li>漏洞成因<br>通过分析皮卡丘后端的 PHP 源码，其查询逻辑大致如下：</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">php</span><br><span class="line">$id = $_POST[&#x27;id&#x27;];</span><br><span class="line">$query = &quot;select * from users where id = $id&quot;;</span><br><span class="line">$result = mysqli_query($link, $query);</span><br></pre></td></tr></table></figure>
+<p>漏洞的核心在于，代码直接信任并拼接了用户的输入数据（$id）。当输入为 1 OR 1&#x3D;1 时，SQL 语义被改变，攻击者借此绕过了原本的查询限制。</p>
+<ol start="2">
+<li>修复方案<br>最彻底且符合安全规范的做法是使用 PDO 预处理语句（Prepared Statements）。将 SQL 语句的“结构”与“数据”分离，让数据库无法将数据误认为指令。<br>修复后代码：</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">php</span><br><span class="line">$stmt = $pdo-&gt;prepare(&quot;SELECT * FROM users WHERE id = ?&quot;);</span><br><span class="line">$stmt-&gt;execute([$_POST[&#x27;id&#x27;]]);</span><br><span class="line">$result = $stmt-&gt;fetchAll();</span><br></pre></td></tr></table></figure>
+<p>此外，在业务逻辑层面，也应尽量避免直接将自增主键暴露给前端，且应严格校验参数类型（如强制转换为整型 intval()）。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://example.com">泥懂布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://example.com/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AC%91%E8%84%B8%E6%BC%8F%E6%B4%9EPoC%E5%A4%8D%E7%8E%B0%E4%B8%8E%E7%9A%AE%E5%8D%A1%E4%B8%98%E9%9D%B6%E5%9C%BA%E5%88%9D%E6%8E%A2/">http://example.com/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AC%91%E8%84%B8%E6%BC%8F%E6%B4%9EPoC%E5%A4%8D%E7%8E%B0%E4%B8%8E%E7%9A%AE%E5%8D%A1%E4%B8%98%E9%9D%B6%E5%9C%BA%E5%88%9D%E6%8E%A2/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://example.com" target="_blank">泥懂布的小站</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E7%AC%91%E8%84%B8%E6%BC%8F%E6%B4%9E%EF%BC%8C%E7%9A%AE%E5%8D%A1%E4%B8%98%E9%9D%B6%E5%9C%BA%EF%BC%8C%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">笑脸漏洞，皮卡丘靶场，网络安全</a></div><div class="post-share"><div class="social-share" data-image="/img/avatar.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%EF%BC%9Acurl-%E5%91%BD%E4%BB%A4%E5%AE%9E%E6%88%98%E4%B8%8E%E5%93%8D%E5%BA%94%E5%88%86%E6%9E%90/" title="网络安全基础工具：curl 命令实战与响应分析"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">网络安全基础工具：curl 命令实战与响应分析</div></div><div class="info-2"><div class="info-item-1">一、 实验背景curl（Client URL）是一款功能强大的命令行工具，用于在客户端与服务器之间传输数据。它支持 HTTP、HTTPS、FTP、SFTP 等 20 多种协议，是开发者进行 API 调试、网络问题排查和自动化脚本编写的核心工具。 本次实验在 Windows 物理机（CMD 环境） 下进行，通过向真实的互联网站点发送请求，学习并掌握 curl 的基础用法及其核心参数。 二、实验操作与结果分析  自定义 User-Agent（伪装浏览器访问）某些网站（如百度）为了反爬虫，会拦截默认使用 curl 标识的请求。我们可以使用 -A 参数修改 User-Agent，将自己伪装成真实的浏览器。  执行命令： 12cmdcurl -A &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64)&quot; https://www.baidu.com 结果分析：从图中可以看到，成功获取到了百度首页的 HTML 源码，并且打印出了 百度一下，你就知道 等页面核心代码。  图注：使用 curl 伪造 User-Agent 成功获取百度首页源码   ...</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">泥懂布</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">6</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%AE%9E%E6%88%98%EF%BC%9A%E7%AC%91%E8%84%B8%E6%BC%8F%E6%B4%9EPoC%E5%A4%8D%E7%8E%B0%E4%B8%8E%E7%9A%AE%E5%8D%A1%E4%B8%98%E9%9D%B6%E5%9C%BA%E5%88%9D%E6%8E%A2/" title="网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探">网络安全实战：笑脸漏洞PoC复现与皮卡丘靶场初探</a><time datetime="2026-10-29T10:46:56.000Z" title="发表于 2026-10-29 18:46:56">2026-10-29</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/29/%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7%EF%BC%9Acurl-%E5%91%BD%E4%BB%A4%E5%AE%9E%E6%88%98%E4%B8%8E%E5%93%8D%E5%BA%94%E5%88%86%E6%9E%90/" title="网络安全基础工具：curl 命令实战与响应分析">网络安全基础工具：curl 命令实战与响应分析</a><time datetime="2026-10-29T08:35:04.000Z" title="发表于 2026-10-29 16:35:04">2026-10-29</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/25/%E7%BD%91%E7%BB%9C%E7%A9%BA%E9%97%B4%E6%B5%8B%E7%BB%98%E4%B8%8E%E5%AD%90%E5%9F%9F%E5%90%8D%E6%94%B6%E9%9B%86%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BB%8E-ZoomEye-%E5%88%B0-Quake-%E7%9A%84%E6%8E%A2%E7%B4%A2/" title="网络空间测绘与子域名收集实战：从 ZoomEye 到 Quake 的探索">网络空间测绘与子域名收集实战：从 ZoomEye 到 Quake 的探索</a><time datetime="2026-10-25T02:45:05.000Z" title="发表于 2026-10-25 10:45:05">2026-10-25</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/24/%E4%BD%BF%E7%94%A8-Wireshark-%E6%8A%93%E5%8C%85%E5%88%86%E6%9E%90-QQ-%E6%B5%81%E9%87%8F%E4%B8%8E%E6%98%8E%E6%96%87%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D/" title="使用 Wireshark 抓包分析 QQ 流量与明文文件恢复">使用 Wireshark 抓包分析 QQ 流量与明文文件恢复</a><time datetime="2026-10-24T03:28:07.000Z" title="发表于 2026-10-24 11:28:07">2026-10-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/10/24/%E5%AF%B9%E7%AD%89%E4%BF%9D2-0%E7%9A%84%E7%90%86%E8%A7%A3/" title="对等保2.0的理解">对等保2.0的理解</a><time datetime="2026-10-24T03:27:51.000Z" title="发表于 2026-10-24 11:27:51">2026-10-24</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 泥懂布</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
